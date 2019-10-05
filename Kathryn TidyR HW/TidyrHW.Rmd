@@ -1,0 +1,498 @@
+---
+title: "TidyR Problem Set"
+author: "Kathryn Haglich"
+date: "10/4/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(esquisse)
+#install.packages("tidyr")
+library(tidyr)
+library(dplyr)
+library(knitr)
+library(kableExtra)
+library(forcats)
+library(tidyverse)
+#install.packages("AER")
+library(AER)
+```
+
+## Problem 1 - Gapminder 
+```{r gets gapminder data, include = F}
+library(gapminder)
+gap <- gapminder
+#View(gap)
+```
+
+*1) How many continents are included in the data set?*
+
+Five continents are included in the data set. 
+```{r, include = FALSE}
+length(unique(gap$continent))
+```
+
+*2) How many countries are included in the data set?*
+
+One hundred forty two countires are included in the data set. 
+```{r, include = FALSE}
+length(unique(gap$country))
+```
+
+
+*3) How many countries per continent?*
+
+```{r, echo = FALSE}
+
+gap2007 = gap %>% filter(year == 2007) #makes sure only entry per country no repeats 
+cpc <- gap2007 %>% count(gap2007$continent)#aggregate counts of each entry per continent 
+
+#Check 
+#rainsInAfrica <- gap %>% filter(continent == "Africa")
+#length(rainsInAfrica$country)
+#length(unique(rainsInAfrica$country)) #52 
+#sum(cpc$n)
+
+kable(cpc, col.names = c("Continent", "Number of Countries"), align = "c")
+```
+
+*4) Produce a report showing the continents in the dataset, total population per continent, and GDP per capita. Be sure that the table is properly labeled and suitable for inclusion in a printed report.*
+
+```{r, echo = FALSE}
+tableValues <- gap %>% 
+  #group by continent and year 
+  group_by(year, continent) %>%  
+  #for each contient and year, sum the total population and total GDP per capita 
+  summarize(totalpop = sum(as.numeric(pop)), totalGDP = sum(as.numeric(gdpPercap)))
+
+kableTableA <-  kable(tableValues[,2:4], col.names = c("Continent", "Total Population", "Total GDP per Capita") ) %>%
+  pack_rows("1952", 1, 5)%>%
+  pack_rows("1957", 6, 10)%>%
+  pack_rows("1962", 11, 15)%>%
+  pack_rows("1967", 16, 20)%>%
+  pack_rows("1972", 21, 25)%>%
+  pack_rows("1977", 26, 30)%>%
+  pack_rows("1982", 31, 35)%>%
+  pack_rows("1987", 36, 40)%>%
+  pack_rows("1992", 41, 45)%>%
+  pack_rows("1997", 46, 50)%>%
+  pack_rows("2002", 51, 55)%>%
+  pack_rows("2007", 56, nrow(tableValues))
+
+kableTableA
+
+```
+
+*5) Produce a well-labeled table that summarizes GDP per capita for the countries in each continent, contrasting the years 1952 and 2007.*
+
+```{r, echo = FALSE}
+gap5207 <- gap %>% filter(year == 1952 | year == 2007)%>% #isolate 52 and 07 
+  group_by(country)%>% 
+  select(-pop,-lifeExp)%>%    #group by country and toss out excess columns for this question
+  arrange(continent)          #organize by continent 
+
+kable(gap5207[,c(1,3,4)])%>%
+  #Africa 1-104 #Americas 105-154 #Asia 155-220 #Europe 221-280 #Oceania 281-284
+  #yeah, I know not the most efficient, but it works 
+  pack_rows("Africa", 1, 104)%>%
+  pack_rows("Americas", 105, 154)%>%
+  pack_rows("Asia", 155, 220)%>%
+  pack_rows("Europe", 221, 280)%>%
+  pack_rows("Oceana", 281, 284)
+```
+
+*6) Product a plot that summarizes the same data as the table. There should be two plots per continent.*
+
+```{r, echo = FALSE}
+gap5207o <- gap5207 %>% group_by(continent, year)
+
+#Separates the data by continent so that it's easier to create the graphs 
+AfricaData <- filter(gap5207o, continent == "Africa")
+AmericaData <- filter(gap5207o, continent == "Americas")
+AsiaData <- filter(gap5207o, continent == "Asia")
+EuropeData <- filter(gap5207o, continent == "Europe")
+OceanData <- filter(gap5207o, continent == "Oceania")
+
+
+ggplot(AfricaData) +
+ aes(x = country, weight = gdpPercap) +
+ geom_bar(fill = "#0c4c8a") +
+  labs(x = "Country", y = "GDP per Capita", title = "GDP per Capita for African Countries", subtitle = "Years 1952 and 2007 ") +
+ coord_flip() +
+ theme_minimal() +
+ facet_wrap(vars(year))
+
+ggplot(AmericaData) +
+ aes(x = country, weight = gdpPercap) +
+ geom_bar(fill = "#0c4c8a") +
+  labs(x = "Country", y = "GDP per Capita", title = "GDP per Capita for American Countries", subtitle = "Years 1952 and 2007 ") +
+ coord_flip() +
+ theme_minimal() +
+ facet_wrap(vars(year))
+
+ggplot(AsiaData) +
+ aes(x = country, weight = gdpPercap) +
+ geom_bar(fill = "#0c4c8a") +
+ labs(x = "Country", y = "GDP per Capita", title = "GDP per Capita for Asian Countries", subtitle = "Years 1952 and 2007 ") +
+ coord_flip() +
+ theme_minimal() +
+ facet_wrap(vars(year))
+
+ggplot(EuropeData) +
+ aes(x = country, weight = gdpPercap) +
+ geom_bar(fill = "#0c4c8a") +
+labs(x = "Country", y = "GDP per Capita", title = "GDP per Capita for European Countries", subtitle = "Years 1952 and 2007 ") +
+ coord_flip() +
+ theme_minimal() +
+ facet_wrap(vars(year))
+
+ggplot(OceanData) +
+ aes(x = country, weight = gdpPercap) +
+ geom_bar(fill = "#0c4c8a") +
+  labs(x = "Country", y = "GDP per Capita", title = "GDP per Capita for Australian and New Zeland", subtitle = "Years 1952 and 2007 ") +
+ coord_flip() +
+ theme_minimal() +
+ facet_wrap(vars(year))
+
+
+```
+
+
+*7) Which countries in the datset have had periods of negative population growth? Illustrate your answer with a table or plot.*
+
+```{r, echo = FALSE}
+#this is extremely inefficient and I'm sorry 
+#I'm sure there's a better way of doing this 
+
+##UPDATE: I have remembered that the lead and lag functions existed which would have probably made this problem 1,000 times simpler - so I know things now many valuable things that I hadn't known before 
+gapneg <-  gap %>%
+  group_by(country)%>%
+  #toss out columns I dont necessarily need 
+  select(-gdpPercap,-lifeExp)%>%
+  #untidies the data so I can do "easier" calculations with the years 
+  pivot_wider(names_from = year, values_from = pop)%>%
+  #finds the differences in sequential years to find the negative growths 
+  mutate(`1952-1957` = `1987`-`1982`)%>%
+  mutate(`1957-1962` = `1962`-`1957`)%>%
+  mutate(`1962-1967` = `1967`-`1962`)%>%
+  mutate(`1967-1972` = `1972`-`1967`)%>%
+  mutate(`1972-1977` = `1977`-`1972`)%>%
+  mutate(`1977-1982` = `1982`-`1977`)%>%
+  mutate(`1982-1987` = `1987`-`1982`)%>%
+  mutate(`1987-1992` = `1992`-`1987`)%>%
+  mutate(`1992-1997` = `1997`-`1992`)%>%
+  mutate(`1997-2002` = `2002`-`1997`)%>%
+  mutate(`2002-2007` = `2007`-`2002`)%>%
+  #finds the countries with the negative ones 
+ filter(`1952-1957`<0 | `1957-1962`<0 |`1962-1967`<0 | `1967-1972`<0 | `1972-1977`<0 |`1977-1982`<0 | `1982-1987`<0 |`1987-1992`<0 | `1992-1997`<0 |`1997-2002`<0 | `2002-2007`<0 )%>%
+  
+ arrange(continent)%>% 
+  #retidies the data so I can easily pair year and the rate of change for that interval 
+  pivot_longer(
+  cols = `1952-1957`:`2002-2007`,
+  names_to = "difference")%>%
+  #further isolates the negative values 
+  filter(value < 0)
+
+gapneg <- gapneg%>% rename(Country = "country", YearsDecreaseOccured = "difference", AmountPopulationDecreasedBy = "value")
+gapneg$AmountPopulationDecreasedBy = -1*gapneg$AmountPopulationDecreasedBy
+
+kable(gapneg[c(1,15,16)])
+
+```
+
+
+*8) Which countries in the dataset have had the highest rate of growth in per capita GDP? Illustrate your answer with a table or plot.* (Just going to focus on big picture from 1952 to 2007.)
+
+
+```{r, echo = FALSE}
+gap5207change <- gap5207 %>% 
+  #untidies data to make calculations easier 
+  pivot_wider(names_from = year, values_from = gdpPercap)%>%
+  #finds the rate of change between the two years 
+  mutate(RateChange = (`2007`-`1952`)/`1952`)%>%
+  #organize by descending rate 
+  arrange(desc(RateChange))
+
+kable(gap5207change[1:25, ], col.names = c("Country", "Continent", "GDP per Capita - 1952","GDP per Capita - 2007", "Rate of GDP Growth"), align = 'c')
+
+```
+
+
+
+
+
+##Problem 2 - Fertility Data 
+The data for Problem 2 is the Fertility data in the AER package. This data is from the 1980 US Census and is comprised of date on married women aged 21-35 with two or more children. The data report the gender of each woman’s first and second child, the woman’s race, age, number of weeks worked in 1979, and whether the woman had more than two children.
+
+```{r, include = FALSE}
+data("Fertility")
+fur <- Fertility
+```
+
+
+*1) There are four possible gender combinations for the first two Children. Product a plot the contracts the frequency of these four combinations. Are the frequencies different for women in their 20s and women who are older than 29?*
+
+```{r, echo = FALSE}
+#let's add two new columns - one that will be categorical and represent the different combination of children -the other will be binary women between 20-29 and >=30 (no one is under 20 so don't have to worry about teen pregnancy)
+
+#also curious side note: I wonder how many cases of first-born twins there are in this data and whether or not that impacts whether the mother has additional children 
+
+#categorizes mothers 
+fur$age <- as.factor(fur$age)#makes everything a factor 
+fur$age <- fct_collapse(fur$age[1:length(fur$age)],
+  `20-29` = c("27", "26", "29", "28", "21", "25", "23", "22","24"),
+  `30+` = c("30", "35", "33", "34", "32", "31"))
+
+#categorize the gender combinations
+fur <- unite(fur, col = "gendercombos", gender1, gender2, sep = "/")
+
+#ok now let's plot these babies 
+#esquisser(fur)
+
+ggplot(fur) +
+ aes(x = gendercombos, fill = gendercombos) +
+ geom_bar() +
+ scale_fill_hue() +
+ labs(title = "Overall Frequency of Gender Combinations ") +
+ theme_minimal()
+
+ggplot(fur) +
+ aes(x = gendercombos, fill = age) +
+ geom_bar(position='dodge') +
+ scale_fill_hue() +
+ labs(title = "Frequency of Gender Combinations By Age of Mother") +
+ theme_minimal() #+
+ #facet_wrap(vars(binaryage))
+
+ggplot(fur) +
+ aes(x = age, fill = age) +
+ geom_bar() +
+  scale_fill_hue() +
+  labs(title = "Frequency of Age of Mother Categories") +
+ theme_minimal()
+
+```
+
+According to the plot, the frequencies do differ for women in their 20s and women who are older than 29. While the general distribution of combinations is the same, there are more higher counts for all combinations for women 30 and over. This is probably because, as shown in the last plot, more women 30 and over were surveyed that women inclusively between 20 and 29. 
+
+
+*2)Produce a plot that contrasts the frequency of having more than two children by race and ethnicity.*
+
+As noted in the documentation, there was some confusion with the participants on how to answer the race related questions on the survey. Therefore, some individuals answered "no" for all options, which has been noted as "missing" in this data. The first plot includes the missing variable, but obscures any patterns among the other known races. Thus, it was removed for the final graph. 
+
+```{r, echo = FALSE}
+#ok, now I want to combine the binary race categories into one variable 
+#let's use forcats in order to solve this since all of these are factors  
+
+#unite all race answers into one 
+fur <- unite(fur, col = "race", afam, hispanic, other)
+#rename the recode the race answers so they make sense again 
+fur$race = fct_recode(fur$race[1:length(fur$race)], Missing = "no_no_no") 
+fur$race = fct_recode(fur$race[1:length(fur$race)], AfricanAmerican ="yes_no_no")
+fur$race = fct_recode(fur$race[1:length(fur$race)], Other = "no_no_yes")
+fur$race = fct_recode(fur$race[1:length(fur$race)], Hispanic = "no_yes_no")
+fur$race = fct_recode(fur$race[1:length(fur$race)], HispanicOther = "no_yes_yes")
+fur$race = fct_recode(fur$race[1:length(fur$race)], AfricanamericanHispanic = "yes_yes_no")
+
+ggplot(fur) +
+ aes(x = morekids, fill = race) +
+ geom_bar(position='dodge') +
+ scale_fill_hue() +
+ labs(x = "Did they have more than two kids", title = "Frequency of Number of Children") +
+ theme_minimal()
+
+#ok, the frequency of the missing data really hides the numbers for the actual races so I'm going to include the above plot to show that, I'm also going to remove the missings to get a clearer picture of the races we do have 
+
+subfur = subset(fur, race != "Missing")
+
+ggplot(subfur) +
+ aes(x = morekids, fill = race) +
+ geom_bar(position='dodge') +
+ scale_fill_hue() +
+ labs(x = "Did they have more than two kids", title = "Frequency of Number of Children") +
+ theme_minimal()
+
+```
+
+
+##Problem 3 - Mtcars and Mpg 
+Use the mtcars and mpg datasets.
+
+*1)How many times does the letter “e” occur in mtcars rownames?*
+
+The letter e/E occcurs 28 times in mtcars rownames. 
+```{r, include = FALSE}
+rowNames = row.names(mtcars)
+sum(str_count(rowNames, "[eE]"))
+```
+
+*2) How many cars in mtcars have the brand Merc?*
+
+Seven cars in the mtcars have the brand Merc. 
+```{r, include = FALSE}
+sum(str_detect(rowNames, {"Merc"}))
+```
+
+*3) How many cars in mpg have the brand(“manufacturer” in mpg) Merc?*
+
+In the literal sense, 0 cars have the brand "Merc", but when human logic is applied, 4 cars have the brand "merc" (mercury). 
+```{r, include = FALSE}
+mans = mpg$manufacturer
+mans
+sum(str_detect(mans, {"merc"}))
+```
+
+*4)Contrast the mileage data for Merc cars as reported in mtcars and mpg. Use tables, plots, and a short explaination.*
+
+From the data available, the two data sets have similar mileage data as seen in the following summary statistics and box plots with all values falling in the range between 15 and 24.4. The mpg  data reports smaller numbers overall, primarily due to the small sample size (4 observations for mpg data set and 7 observations for mtcars data set).  However, no solidified conclusions can be drawn from this analysis. Additionally, the mpg data set does not include specific car names, just labels the four observations "mercury". We do not know if these are the same models as the ones being analyzed in the mtcars data set. Therefore, we cannot say that these two data sets are worthy of true comparison. 
+
+```{r, echo = FALSE}
+#cleaning mpg
+mpgMerc = subset(mpg, manufacturer == "mercury") %>% select(manufacturer, hwy,cty)
+#mpgMerc #hwy and #cty are mileage data <- gonna average to compare 1:1
+AvgMileage = (mpgMerc$hwy+mpgMerc$cty)/2
+mpgMerc <- cbind(mpgMerc, AvgMileage)
+
+#cleaning mtcars
+mtMerc = subset(mtcars, str_detect(rowNames, {"Merc"}) )%>%select(mpg)
+#mtMerc #mpg is mileage data
+library(data.table) #row names should be its own variable 
+mtMerc <- setDT(mtMerc, keep.rownames = TRUE)[] %>%
+  rename(model = "rn")
+
+#puts summary statics into table 
+#summary(mpgMerc$AvgMileage)
+MPG <- c(15, 15.38, 15.75, 15.62, 16, 16)
+#summary(mtMerc$mpg)
+MTCARS <- c(15.20,   16.85,   17.80,   19.01,   21.00,   24.40 )
+sumry <- as.data.frame(cbind(
+  c("Minimum", "1st Qu", "Median", "Mean", "3rd Qu", "Max"), 
+  MPG, MTCARS ))
+
+#tidies the summary statistics and puts them into nice table 
+sumry <- sumry %>% pivot_longer(
+  cols = MPG:MTCARS,
+  names_to = c("Original Data Set"))
+sumry <- sumry %>%  rename(SummaryStatistic = "V1", Value = "value")
+kable(sumry)
+
+#box plot for mpg dataset
+ggplot(mpgMerc) +
+ aes(x = "", y = AvgMileage) +
+ geom_boxplot(fill = "#9ecae1") +
+ labs(title = "Average Miles Per Gallon from mpg Dataset ", subtitle = "Data from 4 Merc Models") + theme_minimal()
+
+#box plot for mtcars dataset 
+ggplot(mtMerc) +
+ aes(x = "", y = mpg) +
+ geom_boxplot(fill = "#c6dbef") +
+ labs(title = "Miles Per Gallon from mtcars Dataset ", subtitle = "Data from 7 merc models ") +
+ theme_minimal()
+
+
+```
+
+
+
+##Problem 4 - Babynames 
+Install the babynames package.
+```{r, include = FALSE}
+library(babynames)
+```
+
+*1) Draw a sample of 500,000 rows from the babynames data*
+```{r, echo = FALSE}
+set.seed(31745) #set seed so that it doesnt change every single time 
+randoRows = sample(1:length(babynames$name), size = 500,000) #random numbers of rows to be pulled
+randoNames <-  rbind(babynames[randoRows,]) #pulled rows 
+
+kable(randoNames[1:10,], caption = "First 10 Rows of Random Names")
+
+#Just some checks to make sure it works 
+#View(randoRows) #564372
+#View(babynames[564372,])
+#View(randoNames)
+
+#fun fact randoNames[129,] is 1997 Kathyrn - one year before I was born =) 
+#but is this not how I spell my name...did 18 people really spell Kathryn wrong???
+
+```
+
+*2) Produce a tabble that displays the five most popular boy names and girl names in the years 1880,1920, 1960, 2000.*
+```{r, echo = FALSE}
+#filters for specific years and groups by them, then takes top  5 in each year  
+names2 <- filter(babynames, babynames$year %in% c(1880, 1920, 1960, 2000))%>%
+  group_by(year)%>%
+  top_n(n = 5, n)
+
+kable(names2, caption = "Top Five Names Per Year")
+```
+
+*3) What names overlap boys and girls?*
+
+There are 10,663 baby names that overlap boys and girls. Ten of them include John, William, James, Charles, George, Frank, Joseph, Thomas, Henry, and Robert. To keep this document short, the remaining 10,653 can be viewed by uncommenting the last line of code in the R chunk for this question. 
+```{r, echo = FALSE}
+#filters out boys and girls 
+boys <- babynames %>% filter(sex == "M")%>% select(name) %>% distinct()
+girls <- babynames %>% filter(sex == "F")%>% select(name) %>% distinct()
+
+overLaps <- intersect(boys,girls) #finds the intersection
+
+#View(overLaps)       ### UNCOMMENT THIS LINE TO SEE ENTIRE LIST 
+
+```
+
+*4) What names were used in the 19th century but have not been used in the 21st century?* (Names unique to 19th century...$A-(A\cup B)$)
+
+There are 1,362 that were used in the 19th century but have not been used in the 21st century. Again, in order to keep the document short and organized, the list can be  viewed by uncommenting the last line of code in the R chunk for this question. However, I will note that my favorite ones on that list include Math, Lemma, Alto, Cathern, Gaylord, Euclid, and Wealthy. An interesting one to notice is that Sister is on that list. I suspect that this was given to babies who died at birth or within a few days after. Instead of giving her a proper name or something of the like, the family decided simply to call her "Sister". 
+
+```{r, echo = FALSE}
+#is.factor(babynames$year) 
+#filters for the distinct individual names by year 
+c19 <- babynames %>% filter(year < 1900)%>% select(name) %>% distinct()
+c21 <- babynames %>% filter(year > 1999)%>% select(name) %>% distinct()
+
+overLapsC <- intersect(c19,c21) #finds where they overlap 
+unique19 = setdiff(c19,overLapsC) #finds difference between 19th century names and intersection 
+
+#View(unique19)        ### UNCOMMENT THIS LINE TO SEE ENTIRE LIST
+```
+
+
+*5) Produce a chart that shows the relative frequency of the names “Donald”, “Hillary”, “Joe”, “Barack”, over the years 1880 through 2017.*
+
+The first plot shows frequency of each name over the years 1880 through 2017 regardless of gender. However, it is difficult to see some of the data (ie data for Barack" when shown this way. To provide some clarity for the specific names, the following plots look at each name individually with gender reconsidered. One note about these plots is that the scales on the x and y axes are different for each name's plot. 
+```{r, echo = FALSE}
+
+#let's start at just looking at the names and not the genders 
+names5 <- filter(babynames, babynames$name %in% c("Hillary", "Joe", "Barack", "Donald")) %>% group_by(year,name) %>% summarize(total = sum(n))
+
+#and now let's reinclude the genders so we can look at each name individually 
+names52 <- filter(babynames, babynames$name %in% c("Hillary", "Joe", "Barack", "Donald"))
+
+#View(names52)
+#esquisser(names52)
+#library(ggplot2)
+
+ggplot(names5) +
+ aes(x = year, y = total, colour = name) +
+ geom_line(size = 1L) +
+ scale_color_hue() +
+ theme_minimal()#library(ggplot2)
+
+ggplot(names52) +
+ aes(x = year, y = n, colour = sex) +
+ geom_line(size = 1L) +
+ scale_color_hue() +
+ theme_minimal() +
+ facet_wrap(vars(name), scales = "free")#library(ggplot2)
+
+
+```
+
+
+
